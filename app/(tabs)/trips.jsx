@@ -9,8 +9,9 @@ import {
   Alert,
   Linking,
   Platform,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import {
   MapPin,
@@ -22,6 +23,7 @@ import {
   Navigation,
   ArrowRight,
 } from 'lucide-react-native';
+// import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Trips() {
   const [activeTab, setActiveTab] = useState(

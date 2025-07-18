@@ -6,8 +6,9 @@ import {
   ScrollView,
   TouchableOpacity,
   Alert,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+// import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import {
   MapPin,
@@ -17,6 +18,7 @@ import {
   Building2,
   CircleCheck as CheckCircle,
 } from 'lucide-react-native';
+// import { SafeAreaView } from 'react-native-safe-area-context';
 
 export default function Office() {
   const [currentOffice, setCurrentOffice] = useState('office1');

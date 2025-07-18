@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import SplashScreenComponent from '@/components/SplashScreen';
 import {
   View,
@@ -9,17 +9,28 @@ import {
   Alert,
   KeyboardAvoidingView,
   Platform,
+  SafeAreaView,
 } from 'react-native';
-import { SafeAreaView } from 'react-native-safe-area-context';
+
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
 import { Truck, CreditCard, Smartphone, Shield } from 'lucide-react-native';
-
+import firebaseApp from '../utils/firebaseConfig';
+import { getApps } from 'firebase/app';
 export default function LoginScreen() {
   const [showSplash, setShowSplash] = useState(true);
   const [dlNumber, setDlNumber] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    // Check if Firebase is initialized
+    if (getApps().length) {
+      console.log('✅ Firebase initialized:', firebaseApp.name);
+    } else {
+      console.warn('⚠️ Firebase not initialized!');
+    }
+  }, []);
 
   if (showSplash) {
     return <SplashScreenComponent onFinish={() => setShowSplash(false)} />;

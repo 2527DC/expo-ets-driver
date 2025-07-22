@@ -106,13 +106,6 @@ export default function Profile() {
             <View style={styles.profileInfo}>
               <Text style={styles.driverName}>{driver.name}</Text>
               <Text style={styles.driverDL}>DL: {driver.dlNumber}</Text>
-              <View style={styles.ratingContainer}>
-                <Star size={16} color="#F59E0B" />
-                <Text style={styles.rating}>{driver.rating}</Text>
-                <Text style={styles.ratingCount}>
-                  ({driver.totalTrips} trips)
-                </Text>
-              </View>
             </View>
           </View>
 
@@ -132,53 +125,6 @@ export default function Profile() {
           </View>
         </View>
 
-        {/* Stats Cards */}
-        <View style={styles.statsContainer}>
-          <View style={styles.statCard}>
-            <TrendingUp size={24} color="#10B981" />
-            <Text style={styles.statNumber}>{driver.totalTrips}</Text>
-            <Text style={styles.statLabel}>Total Trips</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <MapPin size={24} color="#2563EB" />
-            <Text style={styles.statNumber}>
-              {driver.totalDistance.toLocaleString()}
-            </Text>
-            <Text style={styles.statLabel}>KM Driven</Text>
-          </View>
-
-          <View style={styles.statCard}>
-            <Award size={24} color="#F59E0B" />
-            <Text style={styles.statNumber}>{driver.rating}</Text>
-            <Text style={styles.statLabel}>Rating</Text>
-          </View>
-        </View>
-
-        {/* Recent Trips */}
-        <View style={styles.recentTripsCard}>
-          <Text style={styles.cardTitle}>Recent Trips</Text>
-          {recentTrips.map((trip) => (
-            <View key={trip.id} style={styles.tripItem}>
-              <View style={styles.tripInfo}>
-                <Text style={styles.tripRoute}>{trip.route}</Text>
-                <View style={styles.tripMeta}>
-                  <Clock size={14} color="#64748B" />
-                  <Text style={styles.tripDuration}>{trip.duration}</Text>
-                  <Text style={styles.tripDate}>{trip.date}</Text>
-                </View>
-              </View>
-              <View style={styles.tripEarnings}>
-                <Text style={styles.earningsAmount}>₹{trip.earnings}</Text>
-                <View style={styles.tripRating}>
-                  <Star size={12} color="#F59E0B" />
-                  <Text style={styles.tripRatingText}>{trip.rating}</Text>
-                </View>
-              </View>
-            </View>
-          ))}
-        </View>
-
         {/* Account Actions */}
         <View style={styles.actionsCard}>
           <TouchableOpacity style={styles.actionItem}>
@@ -189,11 +135,6 @@ export default function Profile() {
           <TouchableOpacity style={styles.actionItem}>
             <MapPin size={20} color="#10B981" />
             <Text style={styles.actionText}>Change Office</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionItem}>
-            <Award size={20} color="#F59E0B" />
-            <Text style={styles.actionText}>View Certificates</Text>
           </TouchableOpacity>
 
           <TouchableOpacity

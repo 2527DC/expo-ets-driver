@@ -11,7 +11,6 @@ import {
   Platform,
   SafeAreaView,
 } from 'react-native';
-// import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import {
   MapPin,
@@ -22,15 +21,14 @@ import {
   Phone,
   Navigation,
   ArrowRight,
+  ChevronDown,
+  ChevronUp,
 } from 'lucide-react-native';
-// import { SafeAreaView } from 'react-native-safe-area-context';
 
-export default function Trips() {
-  const [activeTab, setActiveTab] = useState(
-    'upcoming' | 'active' | ('completed' > 'active')
-  );
+export default function UpcommingTrip() {
   const [otpInput, setOtpInput] = useState('');
   const [selectedEmployee, setSelectedEmployee] = useState(null);
+  const [expandedTrips, setExpandedTrips] = useState({}); // State to track expanded state for each trip
 
   const [trips, setTrips] = useState([
     {
@@ -262,204 +260,216 @@ export default function Trips() {
     }
   };
 
-  const filteredTrips = trips.filter((trip) => trip.status === activeTab);
+  // Toggle the expanded state for a specific trip
+  const toggleTripExpansion = (tripId) => {
+    setExpandedTrips((prev) => ({
+      ...prev,
+      [tripId]: !prev[tripId],
+    }));
+  };
+
+  // Filter only upcoming trips
+  const filteredTrips = trips.filter((trip) => trip.status === 'upcoming');
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
 
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Trip Management</Text>
-        <Text style={styles.headerSubtitle}>Track your pickups and routes</Text>
-      </View>
-
-      {/* Tab Navigation */}
-      <View style={styles.tabContainer}>
-        {['upcoming', 'active', 'completed'].map((tab) => (
-          <TouchableOpacity
-            key={tab}
-            style={[styles.tab, activeTab === tab && styles.activeTab]}
-            onPress={() => setActiveTab(tab)}
-          >
-            <Text
-              style={[
-                styles.tabText,
-                activeTab === tab && styles.activeTabText,
-              ]}
-            >
-              {tab.charAt(0).toUpperCase() + tab.slice(1)}
-            </Text>
-          </TouchableOpacity>
-        ))}
+        <Text style={styles.headerTitle}>Upcoming Trips</Text>
+        <Text style={styles.headerSubtitle}>
+          Track your upcoming pickups and routes
+        </Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
-        {filteredTrips.map((trip) => {
-          const currentEmployee = getCurrentEmployee(trip.employees);
-          const completedCount = trip.employees.filter(
-            (emp) => emp.status === 'picked'
-          ).length;
-          const noShowCount = trip.employees.filter(
-            (emp) => emp.status === 'no_show'
-          ).length;
+        {filteredTrips.length === 0 ? (
+          <View style={styles.noTripsContainer}>
+            <Text style={styles.noTripsText}>No upcoming trips found</Text>
+          </View>
+        ) : (
+          filteredTrips.map((trip) => {
+            const currentEmployee = getCurrentEmployee(trip.employees);
+            const completedCount = trip.employees.filter(
+              (emp) => emp.status === 'picked'
+            ).length;
+            const noShowCount = trip.employees.filter(
+              (emp) => emp.status === 'no_show'
+            ).length;
 
-          return (
-            <View key={trip.id} style={styles.tripCard}>
-              {/* Trip Header */}
-              <View style={styles.tripHeader}>
-                <View style={styles.tripInfo}>
-                  <Text style={styles.tripId}>{trip.id}</Text>
-                  <View style={styles.routeContainer}>
-                    <Text style={styles.routeText}>{trip.source}</Text>
-                    <ArrowRight size={16} color="#64748B" />
-                    <Text style={styles.routeText}>{trip.destination}</Text>
-                  </View>
-                  <View style={styles.tripMeta}>
-                    <Clock size={14} color="#64748B" />
-                    <Text style={styles.tripTime}>{trip.startTime}</Text>
-                  </View>
-                </View>
-                <View style={styles.tripActions}>
-                  <TouchableOpacity
-                    style={styles.navigationButton}
-                    onPress={() => handleNavigation(trip)}
-                  >
-                    <Navigation size={20} color="#FFFFFF" />
-                  </TouchableOpacity>
-                  <View
-                    style={[
-                      styles.statusBadge,
-                      { backgroundColor: getStatusColor(trip.status) },
-                    ]}
-                  >
-                    <Text style={styles.statusText}>
-                      {trip.status.toUpperCase()}
-                    </Text>
-                  </View>
-                </View>
-              </View>
-
-              {/* Progress Bar */}
-              <View style={styles.progressContainer}>
-                <View style={styles.progressBar}>
-                  <View
-                    style={[
-                      styles.progressFill,
-                      {
-                        width: `${
-                          (completedCount / trip.employees.length) * 100
-                        }%`,
-                      },
-                    ]}
-                  />
-                </View>
-                <Text style={styles.progressText}>
-                  {completedCount}/{trip.employees.length} completed
-                  {noShowCount > 0 && ` • ${noShowCount} no-shows`}
-                </Text>
-              </View>
-
-              {/* Current Employee (if active trip) */}
-              {currentEmployee && trip.status === 'active' && (
-                <View style={styles.currentEmployeeCard}>
-                  <View style={styles.currentEmployeeHeader}>
-                    <Text style={styles.currentEmployeeLabel}>Next Pickup</Text>
-                    <Text style={styles.pickupOrder}>
-                      #{currentEmployee.pickupOrder}
-                    </Text>
-                  </View>
-
-                  <Text style={styles.currentEmployeeName}>
-                    {currentEmployee.name}
-                  </Text>
-                  <View style={styles.currentEmployeeDetails}>
-                    <MapPin size={14} color="#64748B" />
-                    <Text style={styles.currentEmployeeLocation}>
-                      {currentEmployee.pickupPoint}
-                    </Text>
-                  </View>
-                  <View style={styles.currentEmployeeDetails}>
-                    <Phone size={14} color="#64748B" />
-                    <Text style={styles.currentEmployeePhone}>
-                      {currentEmployee.phone}
-                    </Text>
-                  </View>
-
-                  {selectedEmployee?.id === currentEmployee.id ? (
-                    <View style={styles.otpContainer}>
-                      <TextInput
-                        style={styles.otpInput}
-                        placeholder="Enter OTP"
-                        value={otpInput}
-                        onChangeText={setOtpInput}
-                        keyboardType="numeric"
-                        maxLength={4}
-                      />
-                      <TouchableOpacity
-                        style={styles.otpSubmitButton}
-                        onPress={() => handleOtpSubmit(currentEmployee)}
-                      >
-                        <Text style={styles.otpSubmitText}>Verify</Text>
-                      </TouchableOpacity>
+            return (
+              <View key={trip.id} style={styles.tripCard}>
+                {/* Trip Header */}
+                <View style={styles.tripHeader}>
+                  <View style={styles.tripInfo}>
+                    <Text style={styles.tripId}>{trip.id}</Text>
+                    <View style={styles.routeContainer}>
+                      <Text style={styles.routeText}>{trip.source}</Text>
+                      <ArrowRight size={16} color="#64748B" />
+                      <Text style={styles.routeText}>{trip.destination}</Text>
                     </View>
-                  ) : (
-                    <View style={styles.actionButtons}>
-                      <TouchableOpacity
-                        style={styles.pickupButton}
-                        onPress={() => setSelectedEmployee(currentEmployee)}
-                      >
-                        <Text style={styles.pickupButtonText}>Enter OTP</Text>
-                      </TouchableOpacity>
-                      <TouchableOpacity
-                        style={styles.noShowButton}
-                        onPress={() => handleNoShow(currentEmployee)}
-                      >
-                        <Text style={styles.noShowButtonText}>No Show</Text>
-                      </TouchableOpacity>
+                    <View style={styles.tripMeta}>
+                      <Clock size={14} color="#64748B" />
+                      <Text style={styles.tripTime}>{trip.startTime}</Text>
+                    </View>
+                  </View>
+                  <View style={styles.tripActions}>
+                    <TouchableOpacity
+                      style={styles.navigationButton}
+                      onPress={() => handleNavigation(trip)}
+                    >
+                      <Navigation size={20} color="#FFFFFF" />
+                    </TouchableOpacity>
+                    <View
+                      style={[
+                        styles.statusBadge,
+                        { backgroundColor: getStatusColor(trip.status) },
+                      ]}
+                    >
+                      <Text style={styles.statusText}>
+                        {trip.status.toUpperCase()}
+                      </Text>
+                    </View>
+                  </View>
+                </View>
+
+                {/* Progress Bar */}
+                <View style={styles.progressContainer}>
+                  <View style={styles.progressBar}>
+                    <View
+                      style={[
+                        styles.progressFill,
+                        {
+                          width: `${
+                            (completedCount / trip.employees.length) * 100
+                          }%`,
+                        },
+                      ]}
+                    />
+                  </View>
+                  <Text style={styles.progressText}>
+                    {completedCount}/{trip.employees.length} completed
+                    {noShowCount > 0 && ` • ${noShowCount} no-shows`}
+                  </Text>
+                </View>
+
+                {/* Current Employee (if active trip) */}
+                {currentEmployee && trip.status === 'active' && (
+                  <View style={styles.currentEmployeeCard}>
+                    <View style={styles.currentEmployeeHeader}>
+                      <Text style={styles.currentEmployeeLabel}>
+                        Next Pickup
+                      </Text>
+                      <Text style={styles.pickupOrder}>
+                        #{currentEmployee.pickupOrder}
+                      </Text>
+                    </View>
+
+                    <Text style={styles.currentEmployeeName}>
+                      {currentEmployee.name}
+                    </Text>
+                    <View style={styles.currentEmployeeDetails}>
+                      <MapPin size={14} color="#64748B" />
+                      <Text style={styles.currentEmployeeLocation}>
+                        {currentEmployee.pickupPoint}
+                      </Text>
+                    </View>
+                    <View style={styles.currentEmployeeDetails}>
+                      <Phone size={14} color="#64748B" />
+                      <Text style={styles.currentEmployeePhone}>
+                        {currentEmployee.phone}
+                      </Text>
+                    </View>
+
+                    {selectedEmployee?.id === currentEmployee.id ? (
+                      <View style={styles.otpContainer}>
+                        <TextInput
+                          style={styles.otpInput}
+                          placeholder="Enter OTP"
+                          value={otpInput}
+                          onChangeText={setOtpInput}
+                          keyboardType="numeric"
+                          maxLength={4}
+                        />
+                        <TouchableOpacity
+                          style={styles.otpSubmitButton}
+                          onPress={() => handleOtpSubmit(currentEmployee)}
+                        >
+                          <Text style={styles.otpSubmitText}>Verify</Text>
+                        </TouchableOpacity>
+                      </View>
+                    ) : (
+                      <View style={styles.actionButtons}>
+                        <TouchableOpacity
+                          style={styles.pickupButton}
+                          onPress={() => setSelectedEmployee(currentEmployee)}
+                        >
+                          <Text style={styles.pickupButtonText}>Enter OTP</Text>
+                        </TouchableOpacity>
+                        <TouchableOpacity
+                          style={styles.noShowButton}
+                          onPress={() => handleNoShow(currentEmployee)}
+                        >
+                          <Text style={styles.noShowButtonText}>No Show</Text>
+                        </TouchableOpacity>
+                      </View>
+                    )}
+                  </View>
+                )}
+
+                {/* All Employees List (Compact) */}
+                <View style={styles.employeesList}>
+                  <TouchableOpacity
+                    style={styles.employeesHeader}
+                    onPress={() => toggleTripExpansion(trip.id)}
+                  >
+                    <Text style={styles.employeesTitle}>
+                      All Pickups ({trip.employees.length})
+                    </Text>
+                    {expandedTrips[trip.id] ? (
+                      <ChevronUp size={20} color="#1E293B" />
+                    ) : (
+                      <ChevronDown size={20} color="#1E293B" />
+                    )}
+                  </TouchableOpacity>
+
+                  {expandedTrips[trip.id] && (
+                    <View style={styles.employeesGrid}>
+                      {trip.employees
+                        .sort((a, b) => a.pickupOrder - b.pickupOrder)
+                        .map((employee) => (
+                          <View key={employee.id} style={styles.employeeItem}>
+                            <View style={styles.employeeNumber}>
+                              <Text style={styles.employeeNumberText}>
+                                {employee.pickupOrder}
+                              </Text>
+                            </View>
+                            <View style={styles.employeeInfo}>
+                              <Text
+                                style={styles.employeeName}
+                                numberOfLines={1}
+                              >
+                                {employee.name}
+                              </Text>
+                              <Text
+                                style={styles.employeeLocation}
+                                numberOfLines={1}
+                              >
+                                {employee.pickupPoint}
+                              </Text>
+                            </View>
+                            <View style={styles.employeeStatus}>
+                              {getStatusIcon(employee.status)}
+                            </View>
+                          </View>
+                        ))}
                     </View>
                   )}
                 </View>
-              )}
-
-              {/* All Employees List (Compact) */}
-              <View style={styles.employeesList}>
-                <TouchableOpacity style={styles.employeesHeader}>
-                  <Text style={styles.employeesTitle}>
-                    All Pickups ({trip.employees.length})
-                  </Text>
-                </TouchableOpacity>
-
-                <View style={styles.employeesGrid}>
-                  {trip.employees
-                    .sort((a, b) => a.pickupOrder - b.pickupOrder)
-                    .map((employee) => (
-                      <View key={employee.id} style={styles.employeeItem}>
-                        <View style={styles.employeeNumber}>
-                          <Text style={styles.employeeNumberText}>
-                            {employee.pickupOrder}
-                          </Text>
-                        </View>
-                        <View style={styles.employeeInfo}>
-                          <Text style={styles.employeeName} numberOfLines={1}>
-                            {employee.name}
-                          </Text>
-                          <Text
-                            style={styles.employeeLocation}
-                            numberOfLines={1}
-                          >
-                            {employee.pickupPoint}
-                          </Text>
-                        </View>
-                        <View style={styles.employeeStatus}>
-                          {getStatusIcon(employee.status)}
-                        </View>
-                      </View>
-                    ))}
-                </View>
               </View>
-            </View>
-          );
-        })}
+            );
+          })
+        )}
       </ScrollView>
     </SafeAreaView>
   );
@@ -484,33 +494,20 @@ const styles = StyleSheet.create({
     color: '#CBD5E1',
     marginTop: 4,
   },
-  tabContainer: {
-    flexDirection: 'row',
-    backgroundColor: '#FFFFFF',
-    paddingHorizontal: 20,
-  },
-  tab: {
-    flex: 1,
-    paddingVertical: 16,
-    alignItems: 'center',
-    borderBottomWidth: 2,
-    borderBottomColor: 'transparent',
-  },
-  activeTab: {
-    borderBottomColor: '#2563EB',
-  },
-  tabText: {
-    fontSize: 16,
-    fontWeight: '500',
-    color: '#64748B',
-  },
-  activeTabText: {
-    color: '#2563EB',
-    fontWeight: '600',
-  },
   content: {
     flex: 1,
     padding: 20,
+  },
+  noTripsContainer: {
+    flex: 1,
+    justifyContent: 'center',
+    alignItems: 'center',
+    padding: 20,
+  },
+  noTripsText: {
+    fontSize: 16,
+    color: '#64748B',
+    textAlign: 'center',
   },
   tripCard: {
     backgroundColor: '#FFFFFF',
@@ -705,6 +702,9 @@ const styles = StyleSheet.create({
     marginTop: 8,
   },
   employeesHeader: {
+    flexDirection: 'row',
+    justifyContent: 'space-between',
+    alignItems: 'center',
     marginBottom: 12,
   },
   employeesTitle: {

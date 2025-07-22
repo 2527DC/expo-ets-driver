@@ -5,8 +5,6 @@ import {
   StyleSheet,
   ScrollView,
   TouchableOpacity,
-  TextInput,
-  Alert,
   Linking,
   Platform,
   SafeAreaView,
@@ -17,7 +15,6 @@ import {
   Clock,
   CircleCheck as CheckCircle,
   Circle as XCircle,
-  Phone,
   Navigation,
   ArrowRight,
   ChevronDown,
@@ -25,8 +22,6 @@ import {
 } from 'lucide-react-native';
 
 export default function Trips() {
-  const [otpInput, setOtpInput] = useState('');
-  const [selectedEmployee, setSelectedEmployee] = useState(null);
   const [expandedTrips, setExpandedTrips] = useState({});
 
   const [trips, setTrips] = useState([
@@ -216,62 +211,6 @@ export default function Trips() {
     ]);
   };
 
-  const getCurrentEmployee = (employees) => {
-    const sortedEmployees = employees.sort(
-      (a, b) => a.pickupOrder - b.pickupOrder
-    );
-    return sortedEmployees.find((emp) => emp.status === 'pending');
-  };
-
-  const handleOtpSubmit = (employee) => {
-    if (otpInput === employee.otp) {
-      setTrips((prevTrips) =>
-        prevTrips.map((trip) => ({
-          ...trip,
-          employees: trip.employees.map((emp) =>
-            emp.id === employee.id ? { ...emp, status: 'picked' } : emp
-          ),
-        }))
-      );
-      setOtpInput('');
-      setSelectedEmployee(null);
-      Alert.alert(
-        'Success',
-        `${employee.name} has been picked up successfully!`
-      );
-    } else {
-      Alert.alert(
-        'Invalid OTP',
-        'Please enter the correct OTP provided by the employee.'
-      );
-    }
-  };
-
-  const handleNoShow = (employee) => {
-    Alert.alert(
-      'Mark as No Show',
-      `Are you sure ${employee.name} is a no-show?`,
-      [
-        { text: 'Cancel', style: 'cancel' },
-        {
-          text: 'Confirm',
-          onPress: () => {
-            setTrips((prevTrips) =>
-              prevTrips.map((trip) => ({
-                ...trip,
-                employees: trip.employees.map((emp) =>
-                  emp.id === employee.id ? { ...emp, status: 'no_show' } : emp
-                ),
-              }))
-            );
-            setSelectedEmployee(null);
-            setOtpInput('');
-          },
-        },
-      ]
-    );
-  };
-
   const getStatusColor = (status) => {
     switch (status) {
       case 'picked':
@@ -301,26 +240,25 @@ export default function Trips() {
     }));
   };
 
-  const filteredTrips = trips.filter((trip) => trip.status === 'active');
+  const filteredTrips = trips.filter((trip) => trip.status === 'completed');
 
   return (
     <SafeAreaView style={styles.container}>
       <StatusBar style="light" />
       <View style={styles.header}>
-        <Text style={styles.headerTitle}>Ongoing Trips</Text>
+        <Text style={styles.headerTitle}>Completed Trips</Text>
         <Text style={styles.headerSubtitle}>
-          Track your active pickups and routes
+          View your completed pickups and routes
         </Text>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
         {filteredTrips.length === 0 ? (
           <View style={styles.noTripsContainer}>
-            <Text style={styles.noTripsText}>No ongoing trips found</Text>
+            <Text style={styles.noTripsText}>No completed trips found</Text>
           </View>
         ) : (
           filteredTrips.map((trip) => {
-            const currentEmployee = getCurrentEmployee(trip.employees);
             const completedCount = trip.employees.filter(
               (emp) => emp.status === 'picked'
             ).length;
@@ -381,69 +319,6 @@ export default function Trips() {
                     {noShowCount > 0 && ` • ${noShowCount} no-shows`}
                   </Text>
                 </View>
-
-                {currentEmployee && (
-                  <View style={styles.currentEmployeeCard}>
-                    <View style={styles.currentEmployeeHeader}>
-                      <Text style={styles.currentEmployeeLabel}>
-                        Next Pickup
-                      </Text>
-                      <Text style={styles.pickupOrder}>
-                        #{currentEmployee.pickupOrder}
-                      </Text>
-                    </View>
-
-                    <Text style={styles.currentEmployeeName}>
-                      {currentEmployee.name}
-                    </Text>
-                    <View style={styles.currentEmployeeDetails}>
-                      <MapPin size={14} color="#64748B" />
-                      <Text style={styles.currentEmployeeLocation}>
-                        {currentEmployee.pickupPoint}
-                      </Text>
-                    </View>
-                    <View style={styles.currentEmployeeDetails}>
-                      <Phone size={14} color="#64748B" />
-                      <Text style={styles.currentEmployeePhone}>
-                        {currentEmployee.phone}
-                      </Text>
-                    </View>
-
-                    {selectedEmployee?.id === currentEmployee.id ? (
-                      <View style={styles.otpContainer}>
-                        <TextInput
-                          style={styles.otpInput}
-                          placeholder="Enter OTP"
-                          value={otpInput}
-                          onChangeText={setOtpInput}
-                          keyboardType="numeric"
-                          maxLength={4}
-                        />
-                        <TouchableOpacity
-                          style={styles.otpSubmitButton}
-                          onPress={() => handleOtpSubmit(currentEmployee)}
-                        >
-                          <Text style={styles.otpSubmitText}>Verify</Text>
-                        </TouchableOpacity>
-                      </View>
-                    ) : (
-                      <View style={styles.actionButtons}>
-                        <TouchableOpacity
-                          style={styles.pickupButton}
-                          onPress={() => setSelectedEmployee(currentEmployee)}
-                        >
-                          <Text style={styles.pickupButtonText}>Enter OTP</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                          style={styles.noShowButton}
-                          onPress={() => handleNoShow(currentEmployee)}
-                        >
-                          <Text style={styles.noShowButtonText}>No Show</Text>
-                        </TouchableOpacity>
-                      </View>
-                    )}
-                  </View>
-                )}
 
                 <View style={styles.employeesList}>
                   <TouchableOpacity
@@ -622,108 +497,6 @@ const styles = StyleSheet.create({
     fontSize: 14,
     color: '#64748B',
     fontWeight: '500',
-  },
-  currentEmployeeCard: {
-    backgroundColor: '#FEF3C7',
-    borderRadius: 12,
-    padding: 16,
-    marginBottom: 16,
-    borderWidth: 1,
-    borderColor: '#FDE68A',
-  },
-  currentEmployeeHeader: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 8,
-  },
-  currentEmployeeLabel: {
-    fontSize: 12,
-    fontWeight: '600',
-    color: '#92400E',
-    textTransform: 'uppercase',
-  },
-  pickupOrder: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: '#92400E',
-  },
-  currentEmployeeName: {
-    fontSize: 18,
-    fontWeight: '600',
-    color: '#1E293B',
-    marginBottom: 8,
-  },
-  currentEmployeeDetails: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: 4,
-  },
-  currentEmployeeLocation: {
-    fontSize: 14,
-    color: '#64748B',
-    marginLeft: 6,
-  },
-  currentEmployeePhone: {
-    fontSize: 14,
-    color: '#64748B',
-    marginLeft: 6,
-  },
-  otpContainer: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginTop: 12,
-  },
-  otpInput: {
-    flex: 1,
-    borderWidth: 1,
-    borderColor: '#D97706',
-    borderRadius: 8,
-    paddingHorizontal: 12,
-    paddingVertical: 10,
-    fontSize: 16,
-    backgroundColor: '#FFFFFF',
-    marginRight: 12,
-  },
-  otpSubmitButton: {
-    backgroundColor: '#10B981',
-    paddingHorizontal: 20,
-    paddingVertical: 10,
-    borderRadius: 8,
-  },
-  otpSubmitText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  actionButtons: {
-    flexDirection: 'row',
-    marginTop: 12,
-    gap: 8,
-  },
-  pickupButton: {
-    flex: 1,
-    backgroundColor: '#2563EB',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  pickupButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
-  },
-  noShowButton: {
-    flex: 1,
-    backgroundColor: '#EF4444',
-    paddingVertical: 12,
-    borderRadius: 8,
-    alignItems: 'center',
-  },
-  noShowButtonText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '600',
   },
   employeesList: {
     marginTop: 8,

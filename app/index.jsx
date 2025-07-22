@@ -17,13 +17,34 @@ import { router } from 'expo-router';
 import { Truck, CreditCard, Smartphone, Shield } from 'lucide-react-native';
 import firebaseApp from '../utils/firebaseConfig';
 import { getApps } from 'firebase/app';
+import database from '@react-native-firebase/database';
+import firebase from '@react-native-firebase/app';
+
 export default function LoginScreen() {
   const [showSplash, setShowSplash] = useState(true);
   const [dlNumber, setDlNumber] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
 
+  const insertStaticData = async () => {
+    console.log('Database URL:', firebase.app().options.databaseURL);
+
+    try {
+      await database().ref('staticData/driverInfo').set({
+        driverName: 'John Doe',
+        licenseNumber: 'DL12345678',
+        // ... other fields
+      });
+      console.log('Data inserted successfully!');
+      return true;
+    } catch (error) {
+      console.error('Error inserting data:', error);
+      return false;
+    }
+  };
+
   useEffect(() => {
+    insertStaticData();
     // Check if Firebase is initialized
     if (getApps().length) {
       console.log('✅ Firebase initialized:', firebaseApp.name);

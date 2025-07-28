@@ -19,13 +19,19 @@ import firebaseApp from '../utils/firebaseConfig';
 import { getApps } from 'firebase/app';
 import database from '@react-native-firebase/database';
 import firebase from '@react-native-firebase/app';
+import { loginUser } from '@/api/auth';
+import { useAuth } from '@/context/AuthContext';
 
 export default function LoginScreen() {
   const [showSplash, setShowSplash] = useState(true);
   const [dlNumber, setDlNumber] = useState('');
   const [phoneNumber, setPhoneNumber] = useState('');
   const [loading, setLoading] = useState(false);
+  const { user, login } = useAuth();
 
+  // console.log("this is the user ", user);
+
+  // Insert static data into Firebase
   const insertStaticData = async () => {
     console.log('Database URL:', firebase.app().options.databaseURL);
 
@@ -33,7 +39,6 @@ export default function LoginScreen() {
       await database().ref('staticData/driverInfo').set({
         driverName: 'John Doe',
         licenseNumber: 'DL12345678',
-        // ... other fields
       });
       console.log('Data inserted successfully!');
       return true;
@@ -43,22 +48,34 @@ export default function LoginScreen() {
     }
   };
 
+  // Check for user authentication and Firebase initialization
   useEffect(() => {
+    // If user is already logged in, redirect to the main app
+    if (user) {
+      router.replace('/(tabs)');
+      return;
+    }
+
+    // Initialize static data and check Firebase
     insertStaticData();
-    // Check if Firebase is initialized
     if (getApps().length) {
       console.log('✅ Firebase initialized:', firebaseApp.name);
     } else {
       console.warn('⚠️ Firebase not initialized!');
     }
-  }, []);
+  }, [user]);
 
+  // Show splash screen while checking auth state
   if (showSplash) {
     return <SplashScreenComponent onFinish={() => setShowSplash(false)} />;
   }
 
+  // If user is logged in, don't render the login screen
+  if (user) {
+    return null; // or a loading spinner if needed
+  }
+
   const generateUniqueId = (phone) => {
-    // Generate a unique ID based on phone number and timestamp
     const timestamp = Date.now().toString(36);
     const phoneHash = phone.replace(/\D/g, '').slice(-10);
     return `DRV-${phoneHash}-${timestamp.toUpperCase()}`;
@@ -82,12 +99,26 @@ export default function LoginScreen() {
 
     setLoading(true);
 
-    try {
-      // Simulate API call
-      await new Promise((resolve) => setTimeout(resolve, 2000));
+    const payload = {
+      username: 'admin@gmail.com',
+      password: 'dp',
+      device_uuid: 'test-device-uuid-1231aqs',
+      device_name: 'Samsung A501',
+      fcm_token: 'test-fcm-token-123',
+      grant_type: 'password',
+      client_id: 'dummy-client-id',
+      client_secret: 'dummy-client-secret',
+      force_logout: true,
+    };
 
-      // Generate unique ID
+    try {
+      const result = await loginUser(payload);
+      console.log('Login Success:', result);
+
       const uniqueId = generateUniqueId(phoneNumber);
+
+      // Update auth context with login data
+      login({ uniqueId, dlNumber, phoneNumber });
 
       Alert.alert(
         'Login Successful',
@@ -100,6 +131,7 @@ export default function LoginScreen() {
         ]
       );
     } catch (error) {
+      console.log("This is the error:", error);
       Alert.alert('Error', 'Login failed. Please try again.');
     } finally {
       setLoading(false);

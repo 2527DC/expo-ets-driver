@@ -1,4 +1,4 @@
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import {
   View,
   Text,
@@ -9,19 +9,15 @@ import {
   Alert,
   SafeAreaView,
 } from 'react-native';
-// import { SafeAreaView } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import {
   User,
   Phone,
   MapPin,
-  Clock,
-  Star,
   CreditCard as Edit3,
   LogOut,
-  Award,
-  TrendingUp,
 } from 'lucide-react-native';
+import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export default function Profile() {
   const [driver, setDriver] = useState({
@@ -64,6 +60,31 @@ export default function Profile() {
     },
   ]);
 
+  const getAuthData = async () => {
+    try {
+      const token = await AsyncStorage.getItem('authToken');
+      const userInfo = await AsyncStorage.getItem('userInfo');
+  
+      return {
+        token,
+        user: userInfo ? JSON.parse(userInfo) : null,
+      };
+    } catch (error) {
+      console.error('Error fetching auth data:', error);
+      return null;
+    }
+  };
+  useEffect(() => {
+    const fetchData = async () => {
+      const authData = await getAuthData();
+      console.log('Token:', authData?.token);
+      console.log('User Info:', authData?.user);
+    };
+  
+    fetchData();
+  }, []);
+  
+   
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },

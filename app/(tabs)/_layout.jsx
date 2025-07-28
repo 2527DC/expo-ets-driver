@@ -19,13 +19,20 @@ export default function TabLayout() {
       }}
     >
       <Tabs.Screen
+        name="upcomingTrip"
+        options={{
+          title: 'Upcoming',
+          tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
+        }}
+      />
+
+      <Tabs.Screen
         name="index"
         options={{
           title: 'Trips',
           tabBarIcon: ({ size, color }) => <MapPin size={size} color={color} />,
         }}
       />
-
       <Tabs.Screen
         name="completedTrip"
         options={{
@@ -34,13 +41,6 @@ export default function TabLayout() {
         }}
       />
 
-      <Tabs.Screen
-        name="upcomingTrip"
-        options={{
-          title: 'Upcoming',
-          tabBarIcon: ({ size, color }) => <User size={size} color={color} />,
-        }}
-      />
       <Tabs.Screen
         name="profile"
         options={{

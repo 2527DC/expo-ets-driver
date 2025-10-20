@@ -8,6 +8,7 @@ import {
   Image,
   Alert,
   SafeAreaView,
+  Platform,
 } from 'react-native';
 import { StatusBar } from 'expo-status-bar';
 import {
@@ -16,22 +17,17 @@ import {
   MapPin,
   CreditCard as Edit3,
   LogOut,
+  Mail,
+  Shield,
+  Calendar,
 } from 'lucide-react-native';
-import AsyncStorage from '@react-native-async-storage/async-storage';
+import { useAuth } from '@/context/AuthContext';
+import { useRouter } from 'expo-router';
+import { Linking } from 'react-native';
 
 export default function Profile() {
-  const [driver, setDriver] = useState({
-    id: 'DR001',
-    name: 'Rajesh Kumar',
-    dlNumber: 'MH12AB1234',
-    phone: '+91 9876543210',
-    rating: 4.8,
-    totalTrips: 1250,
-    totalDistance: 45000,
-    joinDate: '2023-03-15',
-    currentOffice: 'Office Complex A',
-    uniqueId: 'DRV-9876543210-SIGN123',
-  });
+  const { user, logout } = useAuth();
+  const router = useRouter();
 
   const [recentTrips] = useState([
     {
@@ -60,44 +56,68 @@ export default function Profile() {
     },
   ]);
 
-  const getAuthData = async () => {
-    try {
-      const token = await AsyncStorage.getItem('authToken');
-      const userInfo = await AsyncStorage.getItem('userInfo');
-  
-      return {
-        token,
-        user: userInfo ? JSON.parse(userInfo) : null,
-      };
-    } catch (error) {
-      console.error('Error fetching auth data:', error);
-      return null;
-    }
-  };
-  useEffect(() => {
-    const fetchData = async () => {
-      const authData = await getAuthData();
-      console.log('Token:', authData?.token);
-      console.log('User Info:', authData?.user);
-    };
-  
-    fetchData();
-  }, []);
-  
-   
   const handleLogout = () => {
     Alert.alert('Logout', 'Are you sure you want to logout?', [
       { text: 'Cancel', style: 'cancel' },
       {
         text: 'Logout',
         style: 'destructive',
-        onPress: () => console.log('Logout'),
+        onPress: async () => {
+          try {
+            await logout();
+            console.log('User logged out successfully');
+            router.replace('/');
+          } catch (error) {
+            console.log('Error during logout:', error);
+            Alert.alert('Logout Error', 'Failed to logout. Please try again.');
+          }
+        },
       },
     ]);
   };
 
-  const handleEditProfile = () => {
-    Alert.alert('Edit Profile', 'Profile editing feature coming soon!');
+  const handleOfficeLocationView = () => {
+    const latitude = 16.5062; // Andhra Pradesh (Amaravati)
+    const longitude = 80.648;
+
+    let url = '';
+
+    if (Platform.OS === 'ios') {
+      // Apple Maps
+      url = `http://maps.apple.com/?ll=${latitude},${longitude}`;
+    } else {
+      // Android
+      url = `geo:${latitude},${longitude}?q=${latitude},${longitude}(Office)`;
+    }
+
+    Linking.canOpenURL(url)
+      .then((supported) => {
+        if (supported) {
+          Linking.openURL(url);
+        } else {
+          // fallback to Google Maps website
+          const browser_url = `https://www.google.com/maps/search/?api=1&query=${latitude},${longitude}`;
+          Linking.openURL(browser_url);
+        }
+      })
+      .catch((err) => {
+        console.error('An error occurred', err);
+        Alert.alert('Error', 'Unable to open maps');
+      });
+  };
+
+  // Format user data with fallbacks
+  const driverData = {
+    name: user?.name || 'Driver',
+    email: user?.email || 'No email provided',
+    phone: user?.phone || 'No phone provided',
+    code: user?.code || 'No code',
+    gender: user?.gender || 'Not specified',
+    vendor_id: user?.vendor_id || 'N/A',
+    joinDate: '2023-03-15', // This would come from your API
+    currentOffice: 'Office Complex A', // This would come from your API
+    rating: 4.8,
+    totalTrips: 1250,
   };
 
   return (
@@ -106,9 +126,6 @@ export default function Profile() {
 
       <View style={styles.header}>
         <Text style={styles.headerTitle}>Driver Profile</Text>
-        <TouchableOpacity onPress={handleEditProfile}>
-          <Edit3 size={24} color="#FFFFFF" />
-        </TouchableOpacity>
       </View>
 
       <ScrollView style={styles.content} showsVerticalScrollIndicator={false}>
@@ -125,37 +142,57 @@ export default function Profile() {
               <View style={styles.onlineIndicator} />
             </View>
             <View style={styles.profileInfo}>
-              <Text style={styles.driverName}>{driver.name}</Text>
-              <Text style={styles.driverDL}>DL: {driver.dlNumber}</Text>
+              <Text style={styles.driverName}>{driverData.name}</Text>
+              <Text style={styles.driverCode}>Code: {driverData.code}</Text>
+              <View style={styles.ratingContainer}>
+                <Text style={styles.ratingText}>⭐ {driverData.rating}</Text>
+                <Text style={styles.tripsText}>
+                  • {driverData.totalTrips} trips
+                </Text>
+              </View>
             </View>
           </View>
 
           <View style={styles.profileDetails}>
             <View style={styles.detailItem}>
-              <Phone size={16} color="#64748B" />
-              <Text style={styles.detailText}>{driver.phone}</Text>
+              <Mail size={16} color="#64748B" />
+              <Text style={styles.detailText}>{driverData.email}</Text>
             </View>
             <View style={styles.detailItem}>
-              <MapPin size={16} color="#64748B" />
-              <Text style={styles.detailText}>{driver.currentOffice}</Text>
+              <Phone size={16} color="#64748B" />
+              <Text style={styles.detailText}>{driverData.phone}</Text>
             </View>
             <View style={styles.detailItem}>
               <User size={16} color="#64748B" />
-              <Text style={styles.detailText}>ID: {driver.uniqueId}</Text>
+              <Text style={styles.detailText}>{driverData.gender}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Shield size={16} color="#64748B" />
+              <Text style={styles.detailText}>
+                Vendor ID: {driverData.vendor_id}
+              </Text>
+            </View>
+            <View style={styles.detailItem}>
+              <MapPin size={16} color="#64748B" />
+              <Text style={styles.detailText}>{driverData.currentOffice}</Text>
+            </View>
+            <View style={styles.detailItem}>
+              <Calendar size={16} color="#64748B" />
+              <Text style={styles.detailText}>
+                Joined: {driverData.joinDate}
+              </Text>
             </View>
           </View>
         </View>
 
         {/* Account Actions */}
         <View style={styles.actionsCard}>
-          <TouchableOpacity style={styles.actionItem}>
-            <Edit3 size={20} color="#2563EB" />
-            <Text style={styles.actionText}>Edit Profile</Text>
-          </TouchableOpacity>
-
-          <TouchableOpacity style={styles.actionItem}>
+          <TouchableOpacity
+            style={styles.actionItem}
+            onPress={handleOfficeLocationView}
+          >
             <MapPin size={20} color="#10B981" />
-            <Text style={styles.actionText}>Change Office</Text>
+            <Text style={styles.actionText}>Office Location </Text>
           </TouchableOpacity>
 
           <TouchableOpacity

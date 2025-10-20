@@ -1,16 +1,16 @@
-// api/auth.js
 import client from '@/context/API_CLIENT';
-import qs from 'qs';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 
 export const loginUser = async (data) => {
+  console.log('Login method invoked');
+
   try {
     const response = await client.post(
-      '/employees/auth/employee/login',
-      qs.stringify(data),
+      '/auth/driver/login',
+      data, // Send data directly as object
       {
         headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
+          'Content-Type': 'application/json', // Changed to JSON
         },
       }
     );
@@ -18,12 +18,19 @@ export const loginUser = async (data) => {
     const result = response.data;
 
     // Save token and user info
-    await AsyncStorage.setItem('authToken', result.access_token);
-    await AsyncStorage.setItem('userInfo', JSON.stringify(result));
+    await AsyncStorage.setItem('authToken', result.data.access_token);
+    await AsyncStorage.setItem('refreshToken', result.data.refresh_token);
+    await AsyncStorage.setItem('userInfo', JSON.stringify(result.data.user));
+    await AsyncStorage.setItem('loginData', JSON.stringify(result));
 
+    console.log('Login successful, tokens saved');
     return result;
   } catch (error) {
-    console.error('Login error:', error?.response?.data || error.message);
+    console.error('Login error:', {
+      status: error.response?.status,
+      data: error.response?.data,
+      message: error.message,
+    });
     throw error;
   }
 };

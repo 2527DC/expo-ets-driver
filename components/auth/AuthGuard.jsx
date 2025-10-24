@@ -1,24 +1,16 @@
-// components/auth/AuthGuard.jsx
-import React from 'react';
 import { useAuth } from '@/context/AuthContext';
-import { router, usePathname } from 'expo-router';
+import { router } from 'expo-router';
 import { View, ActivityIndicator } from 'react-native';
+import React, { useEffect } from 'react';
 
 export default function AuthGuard({ children }) {
   const { user, loading } = useAuth();
-  const pathname = usePathname();
 
-  React.useEffect(() => {
-    if (!loading) {
-      if (!user && !pathname.startsWith('/(auth)')) {
-        // User not authenticated and not on auth page, redirect to login
-        router.replace('/(auth)/login');
-      } else if (user && pathname.startsWith('/(auth)')) {
-        // User authenticated and on auth page, redirect to tabs
-        router.replace('/(tabs)');
-      }
+  useEffect(() => {
+    if (!loading && !user) {
+      router.replace('/(auth)/login');
     }
-  }, [user, loading, pathname]);
+  }, [user, loading]);
 
   if (loading) {
     return (
@@ -26,6 +18,10 @@ export default function AuthGuard({ children }) {
         <ActivityIndicator size="large" color="#2563EB" />
       </View>
     );
+  }
+
+  if (!user) {
+    return null; // prevents protected screens from rendering for unauthenticated users
   }
 
   return children;

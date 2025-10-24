@@ -12,39 +12,16 @@ import {
   SafeAreaView,
   ScrollView,
   Image,
-  Linking,
 } from 'react-native';
 import AsyncStorage from '@react-native-async-storage/async-storage';
 import { StatusBar } from 'expo-status-bar';
 import { router } from 'expo-router';
-import {
-  Truck,
-  CreditCard,
-  Shield,
-  User,
-  Lock,
-  MapPin,
-  Bell,
-  Eye,
-} from 'lucide-react-native';
+import { CreditCard, Shield, User, Lock } from 'lucide-react-native';
 import { loginUser } from '@/api/auth';
 import { useAuth } from '@/context/AuthContext';
 
-// Expo permissions
-import * as Location from 'expo-location';
-import * as Notifications from 'expo-notifications';
-
 export default function LoginScreen() {
   const [loading, setLoading] = useState(false);
-  const [checkingPermissions, setCheckingPermissions] = useState(true);
-  const [permissionsGranted, setPermissionsGranted] = useState(false);
-  const [permissionStatus, setPermissionStatus] = useState({
-    location: 'checking',
-    backgroundLocation: 'checking',
-    overlay: 'checking',
-    notifications: 'checking',
-  });
-
   const { user, login } = useAuth();
 
   // Default values for login fields
@@ -55,198 +32,6 @@ export default function LoginScreen() {
   });
 
   const [errors, setErrors] = useState({});
-
-  // Check Android overlay permission (using Platform-specific code)
-  const checkOverlayPermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        // For Android, we need to check Settings.canDrawOverlays
-        // This requires additional native configuration
-        return 'granted'; // We'll handle this properly below
-      } catch (error) {
-        console.error('Error checking overlay permission:', error);
-        return 'denied';
-      }
-    }
-    return 'granted'; // iOS doesn't have overlay permission
-  };
-
-  // Check all required permissions using Expo
-  // Check all required permissions using Expo
-  const checkAllPermissions = async () => {
-    setCheckingPermissions(true);
-
-    try {
-      const status = { ...permissionStatus };
-
-      // Check foreground location
-      try {
-        const { status: locationStatus } =
-          await Location.getForegroundPermissionsAsync();
-        status.location = locationStatus;
-      } catch (error) {
-        console.warn('Error checking foreground location:', error);
-        status.location = 'undetermined';
-      }
-
-      // Check background location with better error handling
-      try {
-        const { status: backgroundLocationStatus } =
-          await Location.getBackgroundPermissionsAsync();
-        status.backgroundLocation = backgroundLocationStatus;
-      } catch (error) {
-        console.warn(
-          'Background location permission check failed:',
-          error.message
-        );
-        // If background location fails, we'll still allow the app to work
-        status.backgroundLocation = 'undetermined';
-      }
-
-      // Check overlay permission
-      const overlayStatus = await checkOverlayPermission();
-      status.overlay = overlayStatus;
-
-      // Check notifications
-      try {
-        const { status: notificationStatus } =
-          await Notifications.getPermissionsAsync();
-        status.notifications = notificationStatus;
-      } catch (error) {
-        console.warn('Error checking notifications:', error);
-        status.notifications = 'undetermined';
-      }
-
-      setPermissionStatus(status);
-
-      // Allow login if at least foreground location is granted
-      // Background location is nice-to-have but not blocking
-      const minimumPermissionsGranted = status.location === 'granted';
-      setPermissionsGranted(minimumPermissionsGranted);
-    } catch (error) {
-      console.error('Error checking permissions:', error);
-    } finally {
-      setCheckingPermissions(false);
-    }
-  };
-
-  // Request location permissions using Expo
-  const requestLocationPermissions = async () => {
-    try {
-      // Request foreground location permission
-      const { status: foregroundStatus } =
-        await Location.requestForegroundPermissionsAsync();
-
-      // Request background location permission
-      const { status: backgroundStatus } =
-        await Location.requestBackgroundPermissionsAsync();
-
-      setPermissionStatus((prev) => ({
-        ...prev,
-        location: foregroundStatus,
-        backgroundLocation: backgroundStatus,
-      }));
-
-      return { foregroundStatus, backgroundStatus };
-    } catch (error) {
-      console.error('Error requesting location permissions:', error);
-      return { foregroundStatus: 'denied', backgroundStatus: 'denied' };
-    }
-  };
-
-  // Request notification permission using Expo
-  const requestNotificationPermission = async () => {
-    try {
-      const { status } = await Notifications.requestPermissionsAsync();
-      setPermissionStatus((prev) => ({
-        ...prev,
-        notifications: status,
-      }));
-      return status;
-    } catch (error) {
-      console.error('Error requesting notification permission:', error);
-      return 'denied';
-    }
-  };
-
-  // Handle overlay permission for Android
-  const requestOverlayPermission = async () => {
-    if (Platform.OS === 'android') {
-      try {
-        // For Android, we need to guide user to enable overlay permission manually
-        Alert.alert(
-          'Overlay Permission Required',
-          'Please enable "Display over other apps" permission for this app to show trip information overlays.',
-          [
-            { text: 'Cancel', style: 'cancel' },
-            {
-              text: 'Open Settings',
-              onPress: () => {
-                // This will open the specific overlay settings for your app
-                Linking.openSettings();
-              },
-            },
-          ]
-        );
-        return 'granted'; // We assume they'll grant it manually
-      } catch (error) {
-        console.error('Error requesting overlay permission:', error);
-        return 'denied';
-      }
-    }
-    return 'granted';
-  };
-
-  // Request all permissions
-  const requestAllPermissions = async () => {
-    setCheckingPermissions(true);
-
-    try {
-      // Request location permissions
-      await requestLocationPermissions();
-
-      // Request notification permission
-      await requestNotificationPermission();
-
-      // Request overlay permission
-      await requestOverlayPermission();
-
-      // Re-check permissions after requesting
-      setTimeout(() => {
-        checkAllPermissions();
-      }, 1000);
-    } catch (error) {
-      console.error('Error requesting permissions:', error);
-    } finally {
-      setCheckingPermissions(false);
-    }
-  };
-
-  // Open app settings for manual permission granting
-  const openAppSettings = () => {
-    Linking.openSettings();
-  };
-
-  // Configure notifications (important for background operation)
-  const configureNotifications = async () => {
-    try {
-      await Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-          shouldShowAlert: true,
-          shouldPlaySound: true,
-          shouldSetBadge: true,
-        }),
-      });
-    } catch (error) {
-      console.error('Error configuring notifications:', error);
-    }
-  };
-
-  // Check permissions on component mount
-  useEffect(() => {
-    checkAllPermissions();
-    configureNotifications();
-  }, []);
 
   // Validation function
   const validateForm = () => {
@@ -298,19 +83,6 @@ export default function LoginScreen() {
   const handleLogin = async () => {
     console.log('Login method invoked');
 
-    // Check if all permissions are granted
-    if (!permissionsGranted) {
-      Alert.alert(
-        'Permissions Required',
-        'Please grant all required permissions to use the app. These permissions are essential for:\n\n• Location: Trip tracking and navigation\n• Background Location: Continuous trip monitoring\n• Overlay: Showing trip information while using other apps\n• Notifications: Trip updates and alerts',
-        [
-          { text: 'Cancel', style: 'cancel' },
-          { text: 'Grant Permissions', onPress: requestAllPermissions },
-        ]
-      );
-      return;
-    }
-
     if (!validateForm()) {
       Alert.alert(
         'Validation Error',
@@ -327,8 +99,8 @@ export default function LoginScreen() {
         tenant_id: credentials.tenant_id,
         username: credentials.username,
         password: credentials.password,
-        device_uuid: 'test-device-uuid-1231aqs',
-        device_name: 'Samsung A501',
+        device_uuid: 'test-device-uuid-123',
+        device_name: 'Samsung A51',
         fcm_token: 'test-fcm-token-123',
         grant_type: 'password',
         client_id: 'dummy-client-id',
@@ -408,23 +180,10 @@ export default function LoginScreen() {
   const resetToDefault = () => {
     setCredentials({
       tenant_id: 'SAM001',
-      username: 'john@ex1ample.clllhq',
+      username: 'john@example.com',
       password: 'StrongPassword123',
     });
     setErrors({});
-  };
-
-  const getPermissionStatusText = (status) => {
-    switch (status) {
-      case 'granted':
-        return { text: 'Granted', color: '#10B981' };
-      case 'denied':
-        return { text: 'Denied', color: '#EF4444' };
-      case 'undetermined':
-        return { text: 'Not Asked', color: '#6B7280' };
-      default:
-        return { text: 'Checking...', color: '#6B7280' };
-    }
   };
 
   return (
@@ -444,179 +203,146 @@ export default function LoginScreen() {
             />
           </View>
 
-          {/* Permissions Section */}
-          <View style={styles.permissionsCard}>
-            <Text style={styles.permissionsTitle}>App Permissions</Text>
-            <Text style={styles.permissionsSubtitle}>
-              The following permissions are required for the app to function
-              properly:
+          <View style={styles.loginCard}>
+            <Text style={styles.loginTitle}>Driver Login</Text>
+            <Text style={styles.loginSubtitle}>
+              Enter your credentials to access your dashboard
             </Text>
 
-            <View style={styles.permissionsList}>
-              {/* Location Permission */}
-              <View style={styles.permissionItem}>
-                <View style={styles.permissionIcon}>
-                  <MapPin size={20} color="#3B82F6" />
+            <View style={styles.inputContainer}>
+              {/* Tenant ID Field */}
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIcon}>
+                  <User size={20} color="#64748B" />
                 </View>
-                <View style={styles.permissionInfo}>
-                  <Text style={styles.permissionName}>Location Access</Text>
-                  <Text style={styles.permissionDescription}>
-                    Required for trip tracking and navigation
-                  </Text>
-                </View>
-                <View style={styles.permissionStatus}>
-                  <Text
-                    style={[
-                      styles.statusText,
-                      {
-                        color: getPermissionStatusText(
-                          permissionStatus.location
-                        ).color,
-                      },
-                    ]}
-                  >
-                    {getPermissionStatusText(permissionStatus.location).text}
-                  </Text>
-                </View>
+                <TextInput
+                  style={[styles.input, errors.tenant_id && styles.inputError]}
+                  placeholder="Enter Tenant ID"
+                  value={credentials.tenant_id}
+                  onChangeText={(value) =>
+                    handleInputChange('tenant_id', value)
+                  }
+                  placeholderTextColor="#94A3B8"
+                  editable={!loading}
+                />
               </View>
+              {errors.tenant_id && (
+                <Text style={styles.errorText}>{errors.tenant_id}</Text>
+              )}
 
-              {/* Background Location Permission */}
-              <View style={styles.permissionItem}>
-                <View style={styles.permissionIcon}>
-                  <MapPin size={20} color="#8B5CF6" />
+              {/* Username/Email Field */}
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIcon}>
+                  <CreditCard size={20} color="#64748B" />
                 </View>
-                <View style={styles.permissionInfo}>
-                  <Text style={styles.permissionName}>Background Location</Text>
-                  <Text style={styles.permissionDescription}>
-                    Required for continuous trip tracking
-                  </Text>
-                </View>
-                <View style={styles.permissionStatus}>
-                  <Text
-                    style={[
-                      styles.statusText,
-                      {
-                        color: getPermissionStatusText(
-                          permissionStatus.backgroundLocation
-                        ).color,
-                      },
-                    ]}
-                  >
-                    {
-                      getPermissionStatusText(
-                        permissionStatus.backgroundLocation
-                      ).text
-                    }
-                  </Text>
-                </View>
+                <TextInput
+                  style={[styles.input, errors.username && styles.inputError]}
+                  placeholder="Enter Username/Email"
+                  value={credentials.username}
+                  onChangeText={(value) => handleInputChange('username', value)}
+                  keyboardType="email-address"
+                  autoCapitalize="none"
+                  placeholderTextColor="#94A3B8"
+                  editable={!loading}
+                />
               </View>
+              {errors.username && (
+                <Text style={styles.errorText}>{errors.username}</Text>
+              )}
 
-              {/* Overlay Permission */}
-              <View style={styles.permissionItem}>
-                <View style={styles.permissionIcon}>
-                  <Eye size={20} color="#F59E0B" />
+              {/* Password Field */}
+              <View style={styles.inputWrapper}>
+                <View style={styles.inputIcon}>
+                  <Lock size={20} color="#64748B" />
                 </View>
-                <View style={styles.permissionInfo}>
-                  <Text style={styles.permissionName}>
-                    Display Over Other Apps
-                  </Text>
-                  <Text style={styles.permissionDescription}>
-                    Required for showing trip information overlays
-                  </Text>
-                </View>
-                <View style={styles.permissionStatus}>
-                  <Text
-                    style={[
-                      styles.statusText,
-                      {
-                        color: getPermissionStatusText(permissionStatus.overlay)
-                          .color,
-                      },
-                    ]}
-                  >
-                    {getPermissionStatusText(permissionStatus.overlay).text}
-                  </Text>
-                </View>
+                <TextInput
+                  style={[styles.input, errors.password && styles.inputError]}
+                  placeholder="Enter Password"
+                  value={credentials.password}
+                  onChangeText={(value) => handleInputChange('password', value)}
+                  secureTextEntry
+                  placeholderTextColor="#94A3B8"
+                  editable={!loading}
+                />
               </View>
+              {errors.password && (
+                <Text style={styles.errorText}>{errors.password}</Text>
+              )}
+            </View>
 
-              {/* Notifications Permission */}
-              <View style={styles.permissionItem}>
-                <View style={styles.permissionIcon}>
-                  <Bell size={20} color="#EC4899" />
-                </View>
-                <View style={styles.permissionInfo}>
-                  <Text style={styles.permissionName}>Notifications</Text>
-                  <Text style={styles.permissionDescription}>
-                    Required for trip updates and alerts
-                  </Text>
-                </View>
-                <View style={styles.permissionStatus}>
-                  <Text
-                    style={[
-                      styles.statusText,
-                      {
-                        color: getPermissionStatusText(
-                          permissionStatus.notifications
-                        ).color,
-                      },
-                    ]}
-                  >
-                    {
-                      getPermissionStatusText(permissionStatus.notifications)
-                        .text
-                    }
-                  </Text>
-                </View>
+            {/* Action Buttons */}
+            <View style={styles.buttonContainer}>
+              <TouchableOpacity
+                style={[
+                  styles.loginButton,
+                  loading && styles.loginButtonDisabled,
+                ]}
+                onPress={handleLogin}
+                disabled={loading}
+              >
+                <Text style={styles.loginButtonText}>
+                  {loading ? 'Logging in...' : 'Login'}
+                </Text>
+              </TouchableOpacity>
+
+              <View style={styles.utilityButtons}>
+                <TouchableOpacity
+                  style={[styles.utilityButton, styles.clearButton]}
+                  onPress={clearFields}
+                  disabled={loading}
+                >
+                  <Text style={styles.clearButtonText}>Clear All</Text>
+                </TouchableOpacity>
+
+                <TouchableOpacity
+                  style={[styles.utilityButton, styles.defaultButton]}
+                  onPress={resetToDefault}
+                  disabled={loading}
+                >
+                  <Text style={styles.defaultButtonText}>Use Default</Text>
+                </TouchableOpacity>
               </View>
             </View>
 
-            {!permissionsGranted && (
-              <View style={styles.permissionActions}>
-                <TouchableOpacity
-                  style={styles.grantPermissionButton}
-                  onPress={requestAllPermissions}
-                  disabled={checkingPermissions}
-                >
-                  <Text style={styles.grantPermissionText}>
-                    {checkingPermissions
-                      ? 'Checking...'
-                      : 'Grant All Permissions'}
-                  </Text>
-                </TouchableOpacity>
-
-                <TouchableOpacity
-                  style={styles.settingsButton}
-                  onPress={openAppSettings}
-                >
-                  <Text style={styles.settingsText}>Open Settings</Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {permissionsGranted && (
-              <View style={styles.allPermissionsGranted}>
-                <Shield size={20} color="#10B981" />
-                <Text style={styles.allPermissionsText}>
-                  All permissions granted! You can now login.
-                </Text>
-              </View>
-            )}
+            <View style={styles.securityInfo}>
+              <Shield size={16} color="#10B981" />
+              <Text style={styles.securityText}>
+                Your credentials are securely encrypted and transmitted
+              </Text>
+            </View>
           </View>
-
-          {/* Rest of your login form remains the same */}
-          {/* ... (your existing login form code) ... */}
         </ScrollView>
       </KeyboardAvoidingView>
     </SafeAreaView>
   );
 }
 
-// Add the missing styles
 const styles = StyleSheet.create({
-  // ... (your existing styles) ...
-  permissionsCard: {
+  container: {
+    flex: 1,
+    backgroundColor: '#F8FAFC',
+  },
+  keyboardView: {
+    flex: 1,
+  },
+  scrollContent: {
+    flexGrow: 1,
+    paddingBottom: 20,
+  },
+  header: {
+    alignItems: 'center',
+    paddingVertical: 20,
+    paddingHorizontal: 16,
+    backgroundColor: '#1E40AF',
+  },
+  headerLogo: {
+    width: 120,
+    height: 40,
+  },
+  loginCard: {
     backgroundColor: '#FFFFFF',
     marginHorizontal: 16,
+    marginTop: 16,
     borderRadius: 16,
     padding: 20,
     shadowColor: '#000',
@@ -624,98 +350,109 @@ const styles = StyleSheet.create({
     shadowOpacity: 0.1,
     shadowRadius: 8,
     elevation: 4,
-    marginBottom: 16,
   },
-  permissionsTitle: {
-    fontSize: 20,
+  loginTitle: {
+    fontSize: 24,
     fontWeight: '700',
     color: '#1E293B',
+    textAlign: 'center',
     marginBottom: 8,
   },
-  permissionsSubtitle: {
+  loginSubtitle: {
     fontSize: 14,
     color: '#64748B',
-    marginBottom: 20,
-    lineHeight: 20,
+    textAlign: 'center',
+    marginBottom: 24,
   },
-  permissionsList: {
+  inputContainer: {
     gap: 16,
   },
-  permissionItem: {
+  inputWrapper: {
     flexDirection: 'row',
     alignItems: 'center',
-    paddingVertical: 8,
-  },
-  permissionIcon: {
-    width: 40,
-    height: 40,
-    borderRadius: 20,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    borderRadius: 8,
     backgroundColor: '#F8FAFC',
-    alignItems: 'center',
-    justifyContent: 'center',
-    marginRight: 12,
   },
-  permissionInfo: {
+  inputIcon: {
+    padding: 12,
+    borderRightWidth: 1,
+    borderRightColor: '#E2E8F0',
+  },
+  input: {
     flex: 1,
-  },
-  permissionName: {
+    padding: 12,
     fontSize: 16,
-    fontWeight: '600',
     color: '#1E293B',
-    marginBottom: 2,
   },
-  permissionDescription: {
+  inputError: {
+    borderColor: '#EF4444',
+  },
+  errorText: {
+    color: '#EF4444',
     fontSize: 12,
-    color: '#64748B',
-  },
-  permissionStatus: {
+    marginTop: 4,
     marginLeft: 8,
   },
-  statusText: {
-    fontSize: 12,
-    fontWeight: '600',
-  },
-  permissionActions: {
-    marginTop: 20,
+  buttonContainer: {
+    marginTop: 24,
     gap: 12,
   },
-  grantPermissionButton: {
+  loginButton: {
     backgroundColor: '#2563EB',
-    paddingVertical: 12,
+    paddingVertical: 14,
     borderRadius: 8,
     alignItems: 'center',
   },
-  grantPermissionText: {
+  loginButtonDisabled: {
+    backgroundColor: '#9CA3AF',
+  },
+  loginButtonText: {
     color: '#FFFFFF',
     fontSize: 16,
     fontWeight: '600',
   },
-  settingsButton: {
+  utilityButtons: {
+    flexDirection: 'row',
+    gap: 12,
+  },
+  utilityButton: {
+    flex: 1,
     paddingVertical: 12,
     borderRadius: 8,
     alignItems: 'center',
     borderWidth: 1,
-    borderColor: '#E2E8F0',
   },
-  settingsText: {
-    color: '#64748B',
+  clearButton: {
+    borderColor: '#EF4444',
+  },
+  clearButtonText: {
+    color: '#EF4444',
     fontSize: 14,
     fontWeight: '500',
   },
-  allPermissionsGranted: {
+  defaultButton: {
+    borderColor: '#10B981',
+  },
+  defaultButtonText: {
+    color: '#10B981',
+    fontSize: 14,
+    fontWeight: '500',
+  },
+  securityInfo: {
     flexDirection: 'row',
     alignItems: 'center',
-    backgroundColor: '#ECFDF5',
-    padding: 12,
-    borderRadius: 8,
-    borderWidth: 1,
-    borderColor: '#D1FAE5',
+    justifyContent: 'center',
     marginTop: 16,
+    padding: 12,
+    backgroundColor: '#F0FDF4',
+    borderRadius: 8,
+    gap: 8,
   },
-  allPermissionsText: {
+  securityText: {
     color: '#065F46',
-    fontSize: 14,
+    fontSize: 12,
     fontWeight: '500',
-    marginLeft: 8,
   },
 });

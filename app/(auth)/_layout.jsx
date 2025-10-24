@@ -8,6 +8,7 @@ export default function AuthLayout() {
         animation: 'fade',
       }}
     >
+      <Stack.Screen name="index" /> {/* permission screen */}
       <Stack.Screen name="login" />
     </Stack>
   );
